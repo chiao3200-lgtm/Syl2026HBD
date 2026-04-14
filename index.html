@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>N109區：進階加密通訊系統 | SYLUS TERMINAL</title>
+    <style>
+        :root {
+            --bg: #030305;
+            --qin-red: #ff4d4d;
+            --qin-red-dim: rgba(255, 77, 77, 0.2);
+            --accent: #ffd32a;
+            --text: #e0e0e0;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--bg); color: var(--text);
+            font-family: "JetBrains Mono", "Courier New", "Microsoft JhengHei", sans-serif;
+            margin: 0; min-height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            overflow: hidden; position: relative;
+        }
+
+        /* 背景雜訊與掃描線 */
+        body::before {
+            content: " "; display: block; position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 4px 100%;
+            pointer-events: none; z-index: 100; opacity: 0.6;
+        }
+
+        /* 倒數計時器 */
+        #timer {
+            font-size: clamp(2.2rem, 12vw, 5rem); font-weight: 900;
+            color: var(--qin-red); font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px var(--qin-red-dim);
+            margin-bottom: 30px; letter-spacing: -2px;
+        }
+
+        .terminal {
+            width: 92%; max-width: 550px; 
+            background: rgba(8, 8, 12, 0.95);
+            position: relative; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 77, 77, 0.2);
+            padding: 5px; z-index: 15;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+        .terminal-inner { border: 1px solid rgba(255, 77, 77, 0.1); padding: 25px; position: relative; }
+
+        #message-box { 
+            font-size: 0.95rem; line-height: 1.6; 
+            min-height: 130px; margin-bottom: 25px; 
+            color: #ccc; border-left: 3px solid var(--qin-red); padding-left: 15px;
+        }
+        #message-box b { color: var(--qin-red); text-transform: uppercase; letter-spacing: 1px; }
+        #message-box i { color: #888; font-style: normal; display: block; font-size: 0.85rem; margin-top: 5px; line-height: 1.4; }
+
+        .action-btn {
+            background: transparent; border: 1px solid var(--qin-red);
+            color: var(--qin-red); padding: 18px; cursor: pointer;
+            width: 100%; transition: all 0.3s;
+            text-align: center; letter-spacing: 4px; font-weight: bold;
+            text-transform: uppercase; outline: none;
+        }
+        .action-btn:hover { background: var(--qin-red); color: #000; box-shadow: 0 0 15px var(--qin-red); }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2,2,4,0.98); z-index: 10000;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-content { 
+            width: 95%; max-width: 520px; 
+            background: linear-gradient(180deg, #0d0d14 0%, #050508 100%); 
+            border: 1px solid var(--qin-red); position: relative; padding: 65px 35px 35px; text-align: center;
+        }
+        .source-tag-box { 
+            display: inline-block; padding: 10px 30px; background: var(--qin-red); color: #000; 
+            font-size: 1.2rem; font-weight: 900; letter-spacing: 2px;
+            position: absolute; top: -22px; left: 50%; transform: translateX(-50%) skew(-15deg);
+        }
+        #modal-text { font-size: 1.3rem; line-height: 1.7; color: #ffffff; }
+        #modal-text i { display: block; font-style: normal; font-size: 0.95rem; color: #999; margin-top: 20px; padding-top: 20px; border-top: 1px dashed rgba(255, 77, 77, 0.4); }
+
+        .system-status { margin-top: 20px; font-size: 0.7rem; color: #555; width: 92%; max-width: 550px; display: flex; justify-content: space-between; }
+        #game-link { display: none; margin-bottom: 15px; text-align: center; border: 1px dashed var(--qin-red); padding: 12px; background: rgba(255, 77, 77, 0.05); }
+    </style>
+</head>
+<body>
+
+    <div id="timer">00:00:00:00</div>
+
+    <div class="terminal">
+        <div class="terminal-inner">
+            <div id="game-link">
+                <a href="Rule.html" style="color: var(--qin-red); text-decoration: none; font-weight: bold; letter-spacing: 2px;">
+                    [ 密鑰解鎖：進入核心頻道 ACCESS GRANTED ]
+                </a>
+            </div>
+            <div id="message-box">
+                <b>SYSTEM</b><br>
+                偵測到 N109 區內部加密頻道... 等待指令。<br>
+                <i>N109 internal encrypted channel detected... Awaiting orders.</i>
+            </div>
+            <button class="action-btn" onclick="handleAction()">攔截通訊 / INTERCEPT</button>
+        </div>
+    </div>
+
+    <div class="system-status">
+        <span>STATUS: MONITORING</span>
+        <span>ID: SYL-0418-2026</span>
+        <span>ZONE: N109_PRIVATE</span>
+    </div>
+
+    <div id="modal" class="modal">
+        <div id="modal-body" class="modal-content">
+            <div class="source-tag-box" id="modal-source">CLASSIFIED</div>
+            <div id="modal-text"></div>
+            <button class="action-btn" style="margin-top:35px" onclick="closeModal()">銷毀情報 / DESTROY DATA</button>
+        </div>
+    </div>
+
+    <script>
+        const TARGET = new Date('2026-04-18T00:00:00'); 
+        let intelClickCount = 0; 
+        let dialogueClickCount = 0; 
+        let nextIntelThreshold = Math.floor(Math.random() * 5) + 5;
+
+        const DB_DIALOGUES = [            
+            { r: "秦徹 / Sylus", t: "『這場牌局的賭注已經押下了，小貓，妳打算拿什麼來換？』<br><i>\"The bets are placed, kitten. What are you planning to trade in return?\"</i>", npc: false },
+            { r: "秦徹 / Sylus", t: "『輸了反而更興奮了，我就喜歡妳這樣。』<br><i>\"Excited because you lost? That's what I like about you.\"</i>", npc: false },
+            { r: "秦徹 / Sylus", t: "『小貓，玩火的時候要小心，別把自己也燒成灰燼。』<br><i>\"Careful playing with fire, kitten. Don't let yourself turn to ash.\"</i>", npc: false },
+            { r: "秦徹 / Sylus", t: "『...怎麼這麼久沒來暗點，獵人協會又派什麼任務給你了。』<br><i>\"...It's been a while since you visited Onychinus. What task did the Association give you this time?\"</i>", npc: false },
+            { r: "秦徹 / Sylus", t: "『這枚籌碼背後刻著妳的名字，想知道它是什麼時候放進去的嗎？』<br><i>\"Your name is engraved on the back of this chip. Want to know when I put it there?\"</i>", npc: false },
+            { r: "秦徹 / Sylus", t: "『在 N109 區，規則由我制定，而妳……是唯一的例外。』<br><i>\"In N109 Zone, I make the rules. And you... are the only exception.\"</i>", npc: false },
+            { r: "秦徹 / Sylus", t: "『下次迷路時，記得看看天空——梅菲斯特大多時候都在。』<br><i>\"Next time you're lost, look at the sky—Mephisto is usually watching.\"</i>", npc: false },
+            { r: "秦徹 / Sylus", t: "『上次的牌局還沒結束，小貓什麼時候要來結束它？』<br><i>\"Our last game hasn't ended yet. When are you coming to finish it, kitten?\"</i>", npc: false },
+            
+            { r: "薛明 / Luke", t: "『老大最近心情不錯，這反而讓我更害怕了...到底會發生什麼？』<br><i>\"Boss is in a good mood lately, which honestly scares me even more... What's coming?\"</i>", npc: false },
+            { r: "薛明 / Luke", t: "『暗點的防禦系統今天重新升級了。』<br><i>\"Onychinus's defense system was upgraded again today.\"</i>", npc: false },
+            { r: "薛明 / Luke", t: "『老大的領帶應該是妳挑的那條。』<br><i>\"The tie Boss is wearing... that's the one you picked, right?\"</i>", npc: false },
+            { r: "薛明 / Luke", t: "『老大的槍套裡換了妳選的那把短槍。』<br><i>\"Boss swapped his sidearm for the one you chose.\"</i>", npc: false },
+            { r: "薛明 / Luke", t: "『剛才路過酒窖，看到老大對著紅酒出神。』<br><i>\"Passed by the wine cellar just now; Boss was staring at the red wine lost in thought.\"</i>", npc: false },
+            
+            { r: "薛影 / Kieran", t: "『我在老大書房發現了一份清單，上面標註了妳的名字。』<br><i>\"I found a list in Boss's study. Your name was highlighted.\"</i>", npc: false },
+            { r: "薛影 / Kieran", t: "『老大前陣子在射擊場測試新的手槍，設計挺特別的。』<br><i>\"Boss was at the range testing a new pistol. The design is quite... unique.\"</i>", npc: false },
+            { r: "薛影 / Kieran", t: "『暗哨報告說妳進了區界，老大雖然還在開會，但手指敲擊桌面的頻率變快了。』<br><i>\"Sentries reported you entered the zone. Boss is still in a meeting, but he's tapping the table much faster now.\"</i>", npc: false },
+            { r: "薛影 / Kieran", t: "『這是別墅的新門禁卡，權限等級：最高。這是老大親自交代的。』<br><i>\"Here's the new keycard for the villa. Access level: Maximum. Boss's personal orders.\"</i>", npc: false },
+            
+            { r: "梅菲斯特 / Mephisto", t: "『嘎喔！嘎！嘎嘎！』<br><i>(翻譯：老大說要是妳再不出現，就親自去找妳嘎！)<br>(Trans: Boss says if you don't show up, he'll come find you himself!)</i>", npc: false },
+            { r: "梅菲斯特 / Mephisto", t: "『嘎嗚！』<br><i>(翻譯：老大把那瓶珍藏紅酒拿出來了，就在房間最顯眼的位置。)<br>(Trans: Boss took out that vintage wine; it's right there in the most visible spot in the room.)</i>", npc: false },
+            { r: "梅菲斯特 / Mephisto", t: "『嘎嘎！』<br><i>(翻譯：老大說別墅後院的紅玫瑰開得正好，問妳什麼時候去看。)<br>(Trans: Boss says the red roses in the backyard are in full bloom; he's asking when you'll visit.)</i>", npc: false },
+            { r: "梅菲斯特 / Mephisto", t: "『嘎喔？嘎嘎！』<br><i>(翻譯：老大的抽屜裡藏著妳上次弄丟的耳環，嘎！)<br>(Trans: Boss's drawer is hiding that earring you lost last time, gah!)</i>", npc: false },
+            { r: "梅菲斯特 / Mephisto", t: "『嘎——！』<br><i>(翻譯：訂製的槍套，又要我送來嘎！)<br>(Trans: A custom holster! He's making me deliver it again, gah!)</i>", npc: false },
+
+            // --- 環境 NPC (npc: true) ---
+            { r: "暗點小弟 / Onychinus Grunt", t: "『呼...今天的巡邏任務總算結束了，去喝一杯吧。』<br><i>\"Phew... patrol's finally over. Let's go grab a drink.\"</i>", npc: true },
+            { r: "N109居民 / N109 Citizen", t: "『最近街上的黑衣人是不是變多了？感覺要出大事。』<br><i>\"Are there more men in black on the streets lately? I feel like something big is coming.\"</i>", npc: true },
+            { r: "酒吧招待 / Bartender", t: "『聽說秦先生包下了整層頂樓，不知道誰這麼幸運。』<br><i>\"I heard Mr. Sylus booked the entire penthouse. Wonder who the lucky guest is.\"</i>", npc: true },
+            { r: "過路人 / Passerby", t: "『快走，前面的巷子好像被封鎖了。』<br><i>\"Move fast, the alley up ahead looks like it's been cordoned off.\"</i>", npc: true },
+            { r: "走私商人 / Smuggler", t: "『這批貨得趕快處理掉，最近風聲太緊。』<br><i>\"Need to offload this cargo fast. Things are getting too heated lately.\"</i>", npc: true },
+            { r: "診所醫生 / Doctor", t: "『這幾天收到的傷員，身上的標記都很眼生啊。』<br><i>\"The wounded coming in these past few days... their insignias are all unfamiliar.\"</i>", npc: true },
+            { r: "街頭混混 / Thug", t: "『切，又是那些暗點的人在威風。』<br><i>\"Tch, Onychinus's people showing off again.\"</i>", npc: true },
+            { r: "小報記者 / Reporter", t: "『如果能拍到秦徹的正面照，這輩子就不愁吃穿了。』<br><i>\"If I could just get one clear shot of Sylus's face, I'd be set for life.\"</i>", npc: true },
+            { r: "餐廳領班 / Maitre d'", t: "『預約清單上全是大人物，今天的菜色必須完美。』<br><i>\"The reservation list is full of VIPs. Today's menu must be flawless.\"</i>", npc: true },
+            { r: "流浪漢 / Drifter", t: "『大烏鴉在叫了...嘿嘿，紅色的雨要下囉。』<br><i>\"The great crow is cawing... hehe, the red rain is about to fall.\"</i>", npc: true },
+            { r: "快遞員 / Courier", t: "『這包裹居然要送到暗點？我手都在抖。』<br><i>\"Delivering this to Onychinus? My hands won't stop shaking.\"</i>", npc: true },
+            { r: "路邊攤販 / Street Vendor", t: "『今天的紅玫瑰特別好賣，全是成雙成對的。』<br><i>\"Red roses are selling like crazy today. Everyone's in pairs.\"</i>", npc: true },
+            { r: "清潔工 / Janitor", t: "『牆上的紅色噴漆怎麼洗都洗不掉。』<br><i>\"The red graffiti on the walls... it just won't wash off.\"</i>", npc: true },
+            { r: "賭場荷官 / Dealer", t: "『今晚不接散客，聽說有大老闆要包場對賭。』<br><i>\"No walk-ins tonight. Word is some big shots are hosting a private game.\"</i>", npc: true },
+            { r: "花店學徒 / Florist Apprentice", t: "『這999朵玫瑰真的要現在送去嗎？』<br><i>\"Are we really delivering these 999 roses right now?\"</i>", npc: true },
+            { r: "監控員 / Monitor Op", t: "『信號出現短暫波動，可能是有外敵入侵。』<br><i>\"Signal's fluctuating. Possible breach by outsiders.\"</i>", npc: true },
+            { r: "保鑣A / Bodyguard A", t: "『站住！前方是非軍事化區域，請出示許可證。』<br><i>\"Halt! Demilitarized zone ahead. Show your permit.\"</i>", npc: true },
+            { r: "通訊員 / Comm Officer", t: "『頻道 **** 被強制占用了，是老大的私人波段。』<br><i>\"Channel **** has been force-occupied. It's the Boss's private frequency.\"</i>", npc: true },
+            { r: "外來者 / Outsider", t: "『這裡的氣氛...我們真的能在這裡活下去?』<br><i>\"This atmosphere... can we really survive here?\"</i>", npc: true },
+            { r: "匿名路人 / Anonymous", t: "『看，夜空中好像有紅色的光在閃。』<br><i>\"Look, there's a red light flashing in the night sky.\"</i>", npc: true },
+            { r: "黑市商人 / Black Marketeer", t: "『嘿，聽說了嗎？秦先生最近在找一種極其罕見的紫鑽，似乎是為了某人的禮物。』<br><i>\"Hey, you heard? Mr. Sylus is looking for an extremely rare purple diamond. Seems like a gift for someone.\"</i>", npc: true },
+            { r: "暗點精英 / Onychinus Elite", t: "『全員戒備！今天那位獵人小姐要過來，誰要是敢出差錯，自己去領罰。』<br><i>\"All units on high alert! The Hunter lady is coming today. If anyone screws up, you'll answer for it personally.\"</i>", npc: true },
+            { r: "酒保 / Bartender", t: "『秦先生的專屬座位今天放了一支新鮮的紅玫瑰，真是稀奇。』<br><i>\"There's a fresh red rose on Mr. Sylus's private table today. How unusual.\"</i>", npc: true },
+            { r: "N109居民 / N109 Citizen", t: "『N109區永遠燈火通明，又是個不眠之夜。』<br><i>\"N109 Zone is always lit up. Another sleepless night.\"</i>", npc: true },
+            { r: "通訊技術員 / Techie", t: "『奇怪，頻道 **** 被鎖定了？』<br><i>\"Strange, channel **** is being locked down?\"</i>", npc: true },
+            { r: "路邊小女孩 / Little Girl", t: "『一隻有紅色眼睛大烏鴉給了我一顆糖，它說那是幫漂亮姐姐帶路的謝禮。』<br><i>\"A big crow with red eyes gave me a candy. It said it's a reward for showing the pretty lady the way.\"</i>", npc: true },
+            { r: "情報販子 / Informant", t: "『想買秦徹的弱點？你要拿什麼來換?只有錢?去去去!錢在N109只是最低標準。』<br><i>\"Want Sylus's weakness? What can you offer in trade? Just money? Get lost! Money is the bare minimum in N109.\"</i>", npc: true },
+            { r: "巡邏隊員 / Patrolman", t: "『老大的心情就像這區的天氣，陰晴不定，全看那位小姐今天來不來。』<br><i>\"Boss's mood is like the weather here—unpredictable. It all depends on if that lady shows up.\"</i>", npc: true },
+            { r: "高級裁縫 / Master Tailor", t: "『這件禮服的尺寸是秦先生親自定的，連腰線的弧度都要求得極其精確。』<br><i>\"The measurements for this gown were set by Mr. Sylus himself. Even the curve of the waist had to be precise.\"</i>", npc: true },
+            { r: "匿名通訊 / Anonymous Comm", t: "『[信號干擾] ……保護好她……這是最高指令。』<br><i>\"[Signal Interference] ...Protect her... this is the supreme order.\"</i>", npc: true }
+        ];
+
+        const DB_INTELS = [
+            { r: "秦徹 / Sylus", s: "機密截獲 / CLASSIFIED", t: "「這場生日賭局，贏的人可以提任何要求。她的靈魂，我也要了。」<i>\n\"In this birthday gamble, the winner takes all. Her soul... I'm taking that as well.\"</i>", th: "theme-blood" },
+            { r: "薛明 / Luke", s: "副手檔案 / LIEUTENANT LOG", t: "「清單顯示：特製絲綢眼罩、精油、黑色手銬。簽名人：秦徹。」<i>\n\"Inventory: Custom silk blindfold, massage oil, black handcuffs. Signed: Sylus.\"</i>", th: "theme-dark" },
+            { r: "薛影 / Kieran", s: "暗哨通報 / RECON", t: "「我也不知道老大那天他有沒有行程，除非有人不長眼。」<i>\n\"I don't know Boss's schedule for that day—unless someone is foolish enough to cross him.\"</i>", th: "theme-tech" },
+            { r: "梅菲斯特 / Mephisto", s: "高空偵查 / AERIAL VIEW", t: "「發現目標車輛正前往暗點。護航等級：最高級。」<i>\n\"Target vehicle spotted heading to Onychinus. Escort level: Maximum.\"</i>s", th: "theme-crow" },
+
+            //新增對話
+            { r: "秦徹 / Sylus", s: "機密截獲 / CLASSIFIED", t: "「跟惡魔交易，代價可不便宜。」<i>\n\"Dealing with a devil? The price won't be cheap.\"</i>", th: "theme-blood" },
+            { r: "薛明 / Luke", s: "副手檔案 / LIEUTENANT LOG", t: "「跟去年一樣狂歡整個四月，現在是第幾天了?」<i>\n\"The revelry lasts all April, just like last year. What day is it now?\"</i>", th: "theme-dark" },
+            { r: "薛影 / Kieran", s: "暗哨通報 / RECON", t: "「每天都要有新的驚喜！這次我們要...」<i>\n\"A new surprise every day! This time, we're going to...\"</i>", th: "theme-tech" },
+            { r: "梅菲斯特 / Mephisto", s: "高空偵查 / AERIAL VIEW", t: "身上貼著上次新買的碎鑽貼紙，被命令不准弄掉。<i>\n\"Still wearing those diamond stickers from last time; ordered not to remove them.\"</i>s", th: "theme-crow" },
+
+            //新增對話
+            { r: "秦徹 / Sylus", s: "機密截獲 / CLASSIFIED", t: "「想親手為我戴上項圈？那妳得先在生日當晚的賭局中贏過我才行。」<i>\n\"Want to put a collar on me yourself? You'll have to beat me in the gamble on the night of my birthday first.\"</i>", th: "theme-blood" },
+            { r: "薛明 / Luke", s: "副手檔案 / LIEUTENANT LOG", t: "「老大親自去拍賣行挑了一對紅寶石耳環……」<i>\n\"Boss went to the auction house to pick out a pair of ruby earrings...\"</i>", th: "theme-dark" },
+            { r: "薛影 / Kieran", s: "暗哨通報 / RECON", t: "「生日驚喜？對老大來說，只要妳主動踏進這裡，就是最好的驚喜。」<i>\n\"A birthday surprise? To Boss, the best surprise is you walking into there on your own.\"</i>", th: "theme-tech" },
+            { r: "梅菲斯特 / Mephisto", s: "高空偵查 / AERIAL VIEW", t: "「嘎！嘎嘎！(翻譯：目標鎖定，紅外線掃描已開啟。獵人小姐今天試穿了三件裙子，老大說第二件最適合撕開。」<i>\n\"Gaw! Gaw-gaw! (Trans: Target locked. IR scan active. You tried on three dresses today; Boss says the second one would be the most fun to tear off!\"</i>s", th: "theme-crow" },
+
+            //新增對話
+            { r: "秦徹 / Sylus", s: "機密截獲 / CLASSIFIED", t: "「禮服已經幫妳選好了。妳只要出現在我身邊就行。」<i>\n\"I've already picked out your dress. When the time comes, all you need to do is be within my reach.\"</i>", th: "theme-blood" },
+            { r: "薛明 / Luke", s: "副手檔案 / LIEUTENANT LOG", t: "「為了這場慶典，我們把整個 N109 區最好的紅酒都攔截下來了！」<i>\n\"We've intercepted the finest red wine in all of N109 for this festival!\"</i>", th: "theme-dark" },
+            { r: "薛影 / Kieran", s: "暗哨通報 / RECON", t: "「我已經清空了所有礙事的頻段。」<i>\n\"I've cleared all the interfering frequencies.\"</i>", th: "theme-tech" },
+            { r: "梅菲斯特 / Mephisto", s: "高空偵查 / AERIAL VIEW", t: "「嘎——！（翻譯：首領看著監視畫面裡妳睡著的樣子竟然在笑！」<i>\n\"Gaw—! (Trans: Boss was actually smiling while watching the surveillance of you sleeping!\"</i>s", th: "theme-crow" },
+        ];
+
+        function getDaysLeft() {
+            const diff = TARGET - new Date();
+            return Math.ceil(diff / (1000 * 60 * 60 * 24));
+        }
+
+        function handleAction() {
+            const days = getDaysLeft();
+            const msgBox = document.getElementById('message-box');
+
+            // 1. 檢查是否觸發情報彈窗
+            intelClickCount++;
+            if (intelClickCount >= nextIntelThreshold) {
+                const intel = DB_INTELS[Math.floor(Math.random() * DB_INTELS.length)];
+                showModal(intel);
+                intelClickCount = 0;
+                nextIntelThreshold = Math.floor(Math.random() * 5) + 5;
+                return;
+            }
+
+            // 2. 處理對話顯示頻率
+            dialogueClickCount++;
+            let pool;
+
+            if (days > 5) {
+                // 5日前：每 6 次點擊中，只有 1 次會是主角
+                if (dialogueClickCount % 6 === 0) {
+                    pool = DB_DIALOGUES.filter(d => d.npc === false);
+                } else {
+                    pool = DB_DIALOGUES.filter(d => d.npc === true);
+                }
+            } else {
+                // 5日內：100% 主要角色
+                pool = DB_DIALOGUES.filter(d => d.npc === false);
+            }
+
+            const d = pool[Math.floor(Math.random() * pool.length)];
+            msgBox.innerHTML = `<b style="color:var(--qin-red)">${d.r}</b><br>${d.t}`;
+        }
+
+        function updateTimer() {
+            const timerEl = document.getElementById('timer');
+            const diff = TARGET - new Date();
+            if (diff <= 0) {
+                timerEl.innerText = "04:18 ACCESS GRANTED";
+                document.getElementById('game-link').style.display = 'block';
+                return;
+            }
+            const d = Math.floor(diff / 86400000);
+            const h = Math.floor((diff / 3600000) % 24);
+            const m = Math.floor((diff / 60000) % 60);
+            const s = Math.floor((diff / 1000) % 60);
+            timerEl.innerText = `${String(d).padStart(2,'0')}:${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        function showModal(data) {
+            document.getElementById('modal-source').innerHTML = data.s; 
+            document.getElementById('modal-text').innerHTML = data.t; 
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    </script>
+</body>
+</html>
+```
